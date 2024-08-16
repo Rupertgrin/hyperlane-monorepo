@@ -25,11 +25,12 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: 16
+          
       - uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: setup rust
+      - name: Setup Rust
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -40,34 +41,35 @@ jobs:
 
       - name: Free disk space
         run: |
-          # Based on https://github.com/actions/runner-images/issues/2840#issuecomment-790492173
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          # Clean up unnecessary directories
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost "$AGENT_TOOLSDIRECTORY"
 
       - name: Install mold linker
         uses: rui314/setup-mold@v1
         with:
           mold-version: 2.0.0
           make-default: true
-      - name: rust cache
+
+      - name: Cache Rust
         uses: Swatinem/rust-cache@v2
         with:
           prefix-key: 'v2-rust'
           shared-key: 'e2e'
           workspaces: |
             ./rust
-      - name: node module cache
+
+      - name: Cache Node modules
         uses: actions/cache@v3
         with:
           path: |
             **/node_modules
             .yarn/cache
           key: ${{ runner.os }}-yarn-cache-${{ hashFiles('./yarn.lock') }}
-      - name: build test
+
+      - name: Build Rust project
         run: cargo build --release --bin run-locally
-      - name: run test
+
+      - name: Run end-to-end tests
         run: ./target/release/run-locally
         env:
           E2E_CI_MODE: 'true'
